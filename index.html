@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP32-C3 温湿度计 (静态展示)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      font-weight: 300;
+      border-bottom: 2px solid #764ba2;
+      padding-bottom: 10px;
+    }
+    .data-item {
+      margin: 25px 0;
+    }
+    .label {
+      font-size: 1.2rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .value {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #764ba2;
+      line-height: 1.2;
+    }
+    .unit {
+      font-size: 1.5rem;
+      color: #999;
+      margin-left: 5px;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    .update {
+      background: #f0f0f0;
+      padding: 8px 15px;
+      border-radius: 30px;
+      display: inline-block;
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🌡️ 温湿度监测 (静态展示)</h1>
+  <div class="data-item">
+    <div class="label">温度</div>
+    <span class="value">25.5</span><span class="unit">°C</span>
+  </div>
+  <div class="data-item">
+    <div class="label">湿度</div>
+    <span class="value">60</span><span class="unit">%</span>
+  </div>
+  <div class="update">⏱️ 静态示例数据 (非实时)</div>
+  <div class="footer">ESP32-C3 无线传感器 · 展示页</div>
+</div>
+</body>
+</html>
