@@ -1,83 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ESP32-C3 温湿度计 (静态展示)</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 40px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
-    h1 {
-      color: #333;
-      margin-bottom: 30px;
-      font-weight: 300;
-      border-bottom: 2px solid #764ba2;
-      padding-bottom: 10px;
-    }
-    .data-item {
-      margin: 25px 0;
-    }
-    .label {
-      font-size: 1.2rem;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .value {
-      font-size: 4rem;
-      font-weight: bold;
-      color: #764ba2;
-      line-height: 1.2;
-    }
-    .unit {
-      font-size: 1.5rem;
-      color: #999;
-      margin-left: 5px;
-    }
-    .footer {
-      margin-top: 30px;
-      font-size: 0.9rem;
-      color: #aaa;
-    }
-    .update {
-      background: #f0f0f0;
-      padding: 8px 15px;
-      border-radius: 30px;
-      display: inline-block;
-      font-size: 0.9rem;
-      color: #555;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>🌍 远程温湿度监测 (MQTT实时)</title>
+    <!-- 引入 MQTT.js 库 [citation:10] -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 300;
+            border-bottom: 2px solid #764ba2;
+            padding-bottom: 10px;
+        }
+        .status {
+            color: #28a745;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            padding: 5px 10px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .data-item {
+            margin: 25px 0;
+        }
+        .label {
+            font-size: 1.2rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .value {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #764ba2;
+            line-height: 1.2;
+        }
+        .unit {
+            font-size: 1.5rem;
+            color: #999;
+            margin-left: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        .update-time {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 <div class="card">
-  <h1>🌡️ 温湿度监测 (静态展示)</h1>
-  <div class="data-item">
-    <div class="label">温度</div>
-    <span class="value">25.5</span><span class="unit">°C</span>
-  </div>
-  <div class="data-item">
-    <div class="label">湿度</div>
-    <span class="value">60</span><span class="unit">%</span>
-  </div>
-  <div class="update">⏱️ 静态示例数据 (非实时)</div>
-  <div class="footer">ESP32-C3 无线传感器 · 展示页</div>
+    <h1>🌡️ 远程温湿度监测</h1>
+    <div class="status" id="mqtt-status">⏳ 连接中...</div>
+    
+    <div class="data-item">
+        <div class="label">温度</div>
+        <span class="value" id="temp-value">--</span><span class="unit">°C</span>
+    </div>
+    
+    <div class="data-item">
+        <div class="label">湿度</div>
+        <span class="value" id="hum-value">--</span><span class="unit">%</span>
+    </div>
+    
+    <div class="update-time" id="last-update">等待数据...</div>
+    <div class="footer">ESP32-C3 无线传感器 · MQTT实时数据</div>
 </div>
+
+<script>
+    // MQTT 配置 [citation:5][citation:10]
+    const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';  // WebSocket安全连接
+    const options = {
+        clean: true,
+        connectTimeout: 4000,
+        clientId: 'web_client_' + Math.random().toString(16).substr(2, 8),
+        // 公共broker通常不需要用户名密码，如有需要可配置 [citation:10]
+    };
+
+    console.log('正在连接MQTT服务器:', brokerUrl);
+    const client = mqtt.connect(brokerUrl, options);
+
+    // 连接成功回调
+    client.on('connect', function() {
+        console.log('MQTT连接成功');
+        document.getElementById('mqtt-status').innerHTML = '✅ 已连接到云端';
+        document.getElementById('mqtt-status').style.color = '#28a745';
+        
+        // 订阅温湿度主题 [citation:7]
+        client.subscribe('home/esp32c3/temperature', function(err) {
+            if (!err) {
+                console.log('已订阅温度主题');
+            }
+        });
+        client.subscribe('home/esp32c3/humidity', function(err) {
+            if (!err) {
+                console.log('已订阅湿度主题');
+            }
+        });
+    });
+
+    // 接收消息回调 [citation:5]
+    client.on('message', function(topic, message) {
+        const value = message.toString();
+        console.log('收到消息:', topic, value);
+        
+        // 根据主题更新对应的显示
+        if (topic === 'home/esp32c3/temperature') {
+            document.getElementById('temp-value').textContent = value;
+        } else if (topic === 'home/esp32c3/humidity') {
+            document.getElementById('hum-value').textContent = value;
+        }
+        
+        // 更新最后接收时间
+        const now = new Date();
+        document.getElementById('last-update').innerHTML = 
+            '最后更新: ' + now.toLocaleTimeString();
+    });
+
+    // 连接错误回调
+    client.on('error', function(err) {
+        console.error('连接错误:', err);
+        document.getElementById('mqtt-status').innerHTML = '❌ 连接失败';
+        document.getElementById('mqtt-status').style.color = '#dc3545';
+    });
+
+    // 断开连接回调
+    client.on('close', function() {
+        console.log('MQTT连接已断开');
+        document.getElementById('mqtt-status').innerHTML = '⚠️ 连接已断开';
+        document.getElementById('mqtt-status').style.color = '#ffc107';
+    });
+</script>
 </body>
 </html>
